@@ -54,7 +54,6 @@ src/
       summary/              # Claude call summary
       voices/               # voice list
       conversation-token/   # mint a WebRTC token (server-only)
-      conversations/[id]/   # pull a conversation transcript by id
       creative/
         script/             # Claude narration script
         dub/                # dubbing: create · poll · stream audio
@@ -66,6 +65,11 @@ assets/                          # screenshots, policy docs, agent prompt
 ```
 
 ---
+
+## Security
+
+- **The ElevenLabs key never reaches the browser** (see above) — all calls proxy through server Route Handlers, and the live agent uses a short-lived, server-minted conversation token. Inputs to `id`/`lang` route params are validated.
+- **This is an unauthenticated demo — it has no user accounts.** The routes that proxy ElevenLabs by id (the dubbing status/audio endpoints) are therefore **not scoped to a per-user owner**: anyone who can reach a deployed instance could request any id in the connected workspace. That's acceptable for a throwaway demo on a dedicated workspace, but **a production deployment must add authentication and per-user ownership checks** before exposing these routes (e.g. a signed session that records the ids it created and only serves those).
 
 ## Getting started
 

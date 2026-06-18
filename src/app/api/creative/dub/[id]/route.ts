@@ -15,6 +15,9 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await ctx.params;
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+    return Response.json({ error: "invalid dubbing id" }, { status: 400 });
+  }
   const meta = await getElevenLabs().dubbing.get(id);
   return Response.json({
     status: meta.status,

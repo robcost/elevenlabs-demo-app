@@ -15,9 +15,15 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await ctx.params;
+  if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+    return Response.json({ error: "invalid dubbing id" }, { status: 400 });
+  }
   const lang = new URL(req.url).searchParams.get("lang");
-  if (!lang) {
-    return Response.json({ error: "lang query param is required" }, { status: 400 });
+  if (!lang || !/^[A-Za-z]{2,3}$/.test(lang)) {
+    return Response.json(
+      { error: "a valid lang query param is required" },
+      { status: 400 },
+    );
   }
 
   const stream = await getElevenLabs().dubbing.audio.get(id, lang);
