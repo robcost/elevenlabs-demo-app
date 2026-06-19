@@ -1,0 +1,22 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        # Amplify "Environment variables" are build-time only. Next.js server
+        # routes read process.env at *runtime* (in the SSR Lambda), so write the
+        # server-only vars into .env.production during the build — Next then loads
+        # them at runtime. (AWS docs: "make env vars accessible to SSR runtimes".)
+        - env | grep -E '^(ELEVENLABS_API_KEY|AGENT_ID|ANTHROPIC_API_KEY)=' >> .env.production
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
