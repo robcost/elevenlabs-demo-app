@@ -1,5 +1,6 @@
 import { getElevenLabs } from "@/lib/elevenlabs";
 import { DEFAULT_OUTPUT_FORMAT, FLASH_MODEL_ID } from "@/lib/voices";
+import { buildForwardHeaders } from "@/lib/eleven-headers";
 
 /** Node.js runtime — the SDK and audio streaming need Node APIs (not Edge). */
 export const runtime = "nodejs";
@@ -28,16 +29,21 @@ export async function POST(req: Request): Promise<Response> {
     );
   }
 
-  const stream = await getElevenLabs().textToSpeech.stream(voiceId, {
-    text,
-    modelId: modelId ?? FLASH_MODEL_ID,
-    outputFormat: outputFormat ?? DEFAULT_OUTPUT_FORMAT,
-  });
+  // `.withRawResponse()` also hands back the ElevenLabs response headers, so we
+  // can surface the serving region (x-region) to the UI.
+  const { data: stream, rawResponse } = await getElevenLabs()
+    .textToSpeech.stream(voiceId, {
+      text,
+      modelId: modelId ?? FLASH_MODEL_ID,
+      outputFormat: outputFormat ?? DEFAULT_OUTPUT_FORMAT,
+    })
+    .withRawResponse();
 
   return new Response(stream as unknown as BodyInit, {
     headers: {
       "Content-Type": "audio/mpeg",
       "Cache-Control": "no-store",
+      ...buildForwardHeaders(rawResponse.headers),
     },
   });
 }

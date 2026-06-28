@@ -1,3 +1,5 @@
+import { buildForwardHeaders } from "@/lib/eleven-headers";
+
 /** Node.js runtime — server-only credential mint. */
 export const runtime = "nodejs";
 
@@ -29,5 +31,8 @@ export async function GET(): Promise<Response> {
   }
 
   const { token } = await res.json();
-  return Response.json({ conversationToken: token });
+  return Response.json(
+    { conversationToken: token },
+    { headers: buildForwardHeaders(res.headers) },
+  );
 }

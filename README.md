@@ -11,9 +11,9 @@ Built with **Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 ·
 ## Screenshots
 
 ### ElevenAgents — the conversation _(centerpiece)_
-A live in-browser **WebRTC** voice agent grounded in Meridian's policy docs (RAG), with client tools, a Matrix audio visualizer, mic selection, and a live chat transcript.
+A live in-browser **WebRTC** voice agent grounded in Meridian's policy docs (RAG), with client tools, a Matrix audio visualizer, mic selection, and a live chat transcript. A **voice response-latency meter** (running min/max/avg + sparkline) and the **serving region** are surfaced live for the performance and residency story.
 
-![ElevenAgents — live WebRTC voice agent with RAG, tools, visualizer and transcript](assets/Agents.png)
+![ElevenAgents — live WebRTC voice agent with RAG, tools, latency meter, region readout and transcript](assets/Agents.png)
 
 ### ElevenAPI — the building blocks
 A TTS model playground (voice picker + Flash / Multilingual / v3, with a live latency & cost readout) and Call Intelligence: Scribe v2 diarised transcription → Claude summary → TTS read-back.
@@ -32,10 +32,15 @@ A policy excerpt → Claude narration script → expressive TTS v3 narration (A/
 | Pillar | Capabilities |
 | :--- | :--- |
 | **ElevenAPI** | Streaming TTS (Flash v2.5 / Multilingual v2 / v3) · Scribe v2 STT with diarization & agent/customer roles · voice library · latency/cost readout |
-| **ElevenAgents** | Realtime WebRTC voice agent · knowledge base + RAG · client tools · turn-taking & barge-in · server-minted conversation tokens |
+| **ElevenAgents** | Realtime WebRTC voice agent · knowledge base + RAG · client tools · turn-taking & barge-in · server-minted conversation tokens · live voice-latency meter |
 | **ElevenCreative** | TTS v3 expressive narration · Dubbing into 5 languages (incl. Japanese) · lip-synced spokesperson video (Studio) |
 
 The non-ElevenLabs LLM passes (call summary, narration script) use **Anthropic Claude**.
+
+### Observability — region & latency
+
+- **Serving region.** Every ElevenLabs-backed request surfaces the `x-region` response header in the UI, with a one-click reveal of the full header set for debugging — making the residency story visible rather than asserted.
+- **Voice response latency.** The Agents page measures, per turn, the time from the member's transcribed speech to the agent starting to speak (the real STT → LLM → TTS round-trip), shown as a running last / min / max / average plus a sparkline — measured from live SDK turn events, no synthetic data.
 
 ### The security pattern that matters
 **The ElevenLabs API key never reaches the browser.** Every call proxies through a Next.js Route Handler, and the live agent connects over WebRTC with a short-lived **conversation token** minted server-side — never a client-exposed key.

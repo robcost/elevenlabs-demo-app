@@ -11,6 +11,11 @@ import {
   AudioPlayerTime,
 } from "@/components/ui/audio-player";
 import { DEFAULT_VOICE_ID } from "@/lib/voices";
+import { ElevenRegion } from "@/components/eleven-region";
+import {
+  readElevenHeaders,
+  type ElevenHeaderInfo,
+} from "@/lib/eleven-headers";
 
 /** A diarised speaker turn returned by /api/stt. */
 type Turn = { speaker: string; text: string };
@@ -46,6 +51,7 @@ export function CallIntelligence() {
   const [readback, setReadback] = useState<{ id: string; src: string } | null>(
     null,
   );
+  const [region, setRegion] = useState<ElevenHeaderInfo | null>(null);
 
   const analyse = useCallback(async () => {
     if (!file) return;
@@ -54,12 +60,14 @@ export function CallIntelligence() {
     setTurns([]);
     setAnalysis(null);
     setReadback(null);
+    setRegion(null);
     try {
       // 1. Transcribe (Scribe v2, diarised).
       const form = new FormData();
       form.append("file", file);
       const sttRes = await fetch("/api/stt", { method: "POST", body: form });
       if (!sttRes.ok) throw new Error("Transcription failed.");
+      setRegion(readElevenHeaders(sttRes));
       const { turns: t } = (await sttRes.json()) as { turns: Turn[] };
       setTurns(t ?? []);
 
@@ -127,6 +135,7 @@ export function CallIntelligence() {
               </div>
             ))}
           </div>
+          <ElevenRegion info={region} />
         </section>
       )}
 

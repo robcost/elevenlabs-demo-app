@@ -1,4 +1,5 @@
 import { getElevenLabs } from "@/lib/elevenlabs";
+import { buildForwardHeaders } from "@/lib/eleven-headers";
 
 /** Node.js runtime — multipart file handling + SDK, key stays server-side. */
 export const runtime = "nodejs";
@@ -20,13 +21,15 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: "No audio file provided." }, { status: 400 });
   }
 
-  const result = await getElevenLabs().speechToText.convert({
-    file,
-    modelId: "scribe_v2",
-    diarize: true,
-    detectSpeakerRoles: true,
-    tagAudioEvents: true,
-  });
+  const { data: result, rawResponse } = await getElevenLabs()
+    .speechToText.convert({
+      file,
+      modelId: "scribe_v2",
+      diarize: true,
+      detectSpeakerRoles: true,
+      tagAudioEvents: true,
+    })
+    .withRawResponse();
 
   const words = result.words ?? [];
 
@@ -48,9 +51,12 @@ export async function POST(req: Request): Promise<Response> {
     if (current) current.text += w.text;
   }
 
-  return Response.json({
-    text: result.text ?? "",
-    durationSecs: result.audioDurationSecs,
-    turns: turns.map((t) => ({ speaker: t.speaker, text: t.text.trim() })),
-  });
+  return Response.json(
+    {
+      text: result.text ?? "",
+      durationSecs: result.audioDurationSecs,
+      turns: turns.map((t) => ({ speaker: t.speaker, text: t.text.trim() })),
+    },
+    { headers: buildForwardHeaders(rawResponse.headers) },
+  );
 }

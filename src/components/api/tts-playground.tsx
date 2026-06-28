@@ -18,6 +18,11 @@ import {
   MULTILINGUAL_MODEL_ID,
   V3_MODEL_ID,
 } from "@/lib/voices";
+import { ElevenRegion } from "@/components/eleven-region";
+import {
+  readElevenHeaders,
+  type ElevenHeaderInfo,
+} from "@/lib/eleven-headers";
 
 /** Selectable TTS models with their trade-off blurb + rough credit cost per char. */
 const MODELS = [
@@ -50,6 +55,7 @@ export function TtsPlayground() {
   const [error, setError] = useState<string | null>(null);
   const [audioItem, setAudioItem] = useState<AudioItem | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [region, setRegion] = useState<ElevenHeaderInfo | null>(null);
 
   // Load the voice list once (server-side proxy keeps the key off the client).
   useEffect(() => {
@@ -79,6 +85,7 @@ export function TtsPlayground() {
       });
       if (!res.ok) throw new Error("Speech generation failed.");
       const ttfbMs = performance.now() - t0; // response headers ≈ time-to-first-byte
+      setRegion(readElevenHeaders(res));
       const blob = await res.blob();
       const totalMs = performance.now() - t0;
 
@@ -162,6 +169,7 @@ export function TtsPlayground() {
               {Math.round(metrics.totalMs)}ms · {metrics.chars} chars
             </p>
           )}
+          <ElevenRegion info={region} />
         </div>
       )}
     </div>

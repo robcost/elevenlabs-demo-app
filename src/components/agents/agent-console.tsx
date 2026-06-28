@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { Matrix } from "@/components/ui/matrix";
 import { MicSelector } from "@/components/ui/mic-selector";
@@ -14,6 +14,12 @@ import {
 import { Message, MessageContent } from "@/components/ui/message";
 import { Response } from "@/components/ui/response";
 import { SectionHeader } from "@/components/section-header";
+import { LatencyMeter } from "./latency-meter";
+import { ElevenRegion } from "@/components/eleven-region";
+import {
+  readElevenHeaders,
+  type ElevenHeaderInfo,
+} from "@/lib/eleven-headers";
 import { clientTools } from "./client-tools";
 
 /** A single line in the live transcript. `role` comes from the SDK MessagePayload. */
@@ -43,12 +49,27 @@ export function AgentConsole() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [micDeviceId, setMicDeviceId] = useState<string>("");
+  const [region, setRegion] = useState<ElevenHeaderInfo | null>(null);
+  const [latencies, setLatencies] = useState<number[]>([]);
+  // Timestamp of the member's most recent turn, anchoring the next latency sample.
+  const pendingTurnAt = useRef<number | null>(null);
 
   const conversation = useConversation({
     clientTools,
     onConnect: ({ conversationId }) => setConversationId(conversationId),
-    onMessage: ({ role, message }) =>
-      setTranscript((prev) => [...prev, { role, message }]),
+    onMessage: ({ role, message }) => {
+      setTranscript((prev) => [...prev, { role, message }]);
+      // A user message = the member's turn was transcribed; start the latency clock.
+      if (role === "user") pendingTurnAt.current = performance.now();
+    },
+    onModeChange: ({ mode }) => {
+      // Agent began speaking after a member turn → record the response latency.
+      if (mode === "speaking" && pendingTurnAt.current !== null) {
+        const ms = performance.now() - pendingTurnAt.current;
+        pendingTurnAt.current = null;
+        setLatencies((prev) => [...prev, ms].slice(-40));
+      }
+    },
     onError: (message) => setError(message),
   });
 
@@ -66,11 +87,14 @@ export function AgentConsole() {
 
       const res = await fetch("/api/conversation-token");
       if (!res.ok) throw new Error("Could not get a conversation token.");
+      setRegion(readElevenHeaders(res));
       const { conversationToken } = await res.json();
       if (!conversationToken) throw new Error("No conversation token returned.");
 
       setTranscript([]);
       setConversationId(null);
+      setLatencies([]);
+      pendingTurnAt.current = null;
       await conversation.startSession({
         conversationToken,
         connectionType: "webrtc",
@@ -190,6 +214,10 @@ export function AgentConsole() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
+
+      {/* Voice response latency + region of the conversation-token mint */}
+      <LatencyMeter samples={latencies} active={isConnected} />
+      <ElevenRegion info={region} />
 
       {/* Live transcript */}
       <section className="flex flex-col gap-2">
